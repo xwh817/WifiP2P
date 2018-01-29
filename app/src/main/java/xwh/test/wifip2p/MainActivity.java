@@ -395,6 +395,23 @@ public class MainActivity extends AppCompatActivity {
 		}
 	}
 
+	private void disconnect() {
+		if (null != mManager) {
+			mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
+				@Override
+				public void onSuccess() {
+					Log.d(TAG, "removeGroup onSuccess");
+				}
+
+				@Override
+				public void onFailure(int reason) {
+					Log.d(TAG, "removeGroup onFailure");
+				}
+			});
+		}
+
+	}
+
 	private void printMessage(final String str) {
 		mTextInfo.post(new Runnable() {
 			@Override
@@ -404,6 +421,10 @@ public class MainActivity extends AppCompatActivity {
 		});
 	}
 
-	
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
 
+		disconnect();
+	}
 }
