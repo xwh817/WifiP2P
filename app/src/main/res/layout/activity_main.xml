@@ -20,22 +20,22 @@
 		android:text="Stop Discover" />
 
 	<Button
-		android:id="@+id/bt_connect"
-		android:layout_width="match_parent"
-		android:layout_height="wrap_content"
-		android:layout_marginTop="6dp"
-		android:text="Connect" />
-
-	<Button
 		android:id="@+id/bt_send"
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
 		android:layout_marginTop="6dp"
 		android:text="Send" />
 
+	<ListView
+		android:id="@+id/list_devices"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginTop="6dp"/>
+
 	<ScrollView
 		android:layout_width="match_parent"
-		android:layout_height="wrap_content">
+		android:layout_height="wrap_content"
+		android:layout_marginTop="6dp">
 		<TextView
 			android:id="@+id/text_info"
 			android:layout_width="wrap_content"

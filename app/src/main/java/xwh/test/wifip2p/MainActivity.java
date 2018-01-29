@@ -15,7 +15,9 @@ import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import java.io.BufferedReader;
@@ -26,6 +28,7 @@ import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Collection;
 
 public class MainActivity extends AppCompatActivity {
@@ -34,22 +37,18 @@ public class MainActivity extends AppCompatActivity {
 	private static final String TAG = "WiFiDirectReceiver";
 	private WifiP2pManager mManager;
 	private WifiP2pManager.Channel mChannel;
-	private MainActivity mActivity;
-	private WifiP2pManager.PeerListListener mListener;
-	private WifiP2pConfig mConfig = new WifiP2pConfig();
 
 	private IntentFilter directFilter;
 	private BroadcastReceiver directReceiver;
 
 	private TextView mTextInfo;
 	private Button mButtonDiscover;
-	private Button mButtonConnect;
+	private ListView mListView;
+	private DeviceListAdapter mListAdapter;
 
 	private boolean p2pEnable = false;
 
 	private Collection<WifiP2pDevice> mWifiP2pDevices;
-
-	private WifiP2pDevice mTargetDevice;
 
 	private boolean isService = false;
 
@@ -60,15 +59,10 @@ public class MainActivity extends AppCompatActivity {
 		setContentView(R.layout.activity_main);
 
 		mButtonDiscover = this.findViewById(R.id.bt_discover);
-		mButtonConnect = this.findViewById(R.id.bt_connect);
 		mTextInfo = this.findViewById(R.id.text_info);
-
-		/*((CheckBox)this.findViewById(R.id.checkbox)).setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-			@Override
-			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-				isService = isChecked;
-			}
-		});*/
+		mListView = this.findViewById(R.id.list_devices);
+		mListAdapter = new DeviceListAdapter(this);
+		mListView.setAdapter(mListAdapter);
 
 		mButtonDiscover.setOnClickListener(new View.OnClickListener() {
 			@Override
@@ -91,12 +85,11 @@ public class MainActivity extends AppCompatActivity {
 			}
 		});
 
-		mButtonConnect.setOnClickListener(new View.OnClickListener() {
+		mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 			@Override
-			public void onClick(View v) {
-				if (mTargetDevice != null) {
-					connectDevice(mTargetDevice);
-				}
+			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+				WifiP2pDevice device = mListAdapter.getItem(position);
+				connectDevice(device);
 			}
 		});
 
@@ -133,12 +126,12 @@ public class MainActivity extends AppCompatActivity {
 					mTextInfo.append("WIFI_P2P_PEERS_CHANGED_ACTION\n");
 					requestPeers();
 				} else if (action.equals(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)) {     // 连接状态发生变化
-					mTextInfo.append("WIFI_P2P_CONNECTION_CHANGED_ACTION\n");
 
 					NetworkInfo info = intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
 					if (info.isConnected()) {
 						getConnectionInfo();
 					}
+					mTextInfo.append("WIFI_P2P_CONNECTION_CHANGED_ACTION\n  isConnected:" + info.isConnected()+"\n");
 
 				} else if (action.equals(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)) {
 
@@ -214,21 +207,11 @@ public class MainActivity extends AppCompatActivity {
 					mWifiP2pDevices = peers.getDeviceList();
 					Log.e(TAG, "==================peers list size: " + mWifiP2pDevices.size());
 
-					StringBuffer stringBuffer = new StringBuffer();
-
-					stringBuffer.append("\nWifi peers list:"+ mWifiP2pDevices.size() + "\n");
-					for (WifiP2pDevice device : mWifiP2pDevices) {
-						Log.e(TAG, "==================device addr: " + device.deviceName + " name: " + device.deviceName);
-
-						if (device.deviceName.startsWith("Android") || device.deviceName.startsWith("MEIZU") || device.deviceName.startsWith("JianGuo")) {
-							mTargetDevice = device;
-						}
-
-						stringBuffer.append(device.deviceName + "\n");
+					if (mWifiP2pDevices.size() != mListAdapter.getCount()) {
+						ArrayList<WifiP2pDevice> deviceList = new ArrayList<>();
+						deviceList.addAll(mWifiP2pDevices);
+						mListAdapter.setData(deviceList);
 					}
-					stringBuffer.append("\n");
-
-					mTextInfo.append(stringBuffer.toString());
 
 				}
 
@@ -241,7 +224,20 @@ public class MainActivity extends AppCompatActivity {
 	private void connectDevice(WifiP2pDevice device) {
 		WifiP2pConfig config = new WifiP2pConfig();
 		config.deviceAddress = device.deviceAddress;
-		//mManager.createGroup(mChannel, null);
+
+		mManager.createGroup(mChannel, new WifiP2pManager.ActionListener() {
+			@Override
+			public void onSuccess() {
+				mTextInfo.append("createGroup onSuccess\n");
+			}
+
+			@Override
+			public void onFailure(int reason) {
+				mTextInfo.append("createGroup failed\n");
+			}
+		});
+
+
 		mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
 
 			@Override
@@ -254,7 +250,6 @@ public class MainActivity extends AppCompatActivity {
 
 			@Override
 			public void onFailure(int reason) {
-
 				mTextInfo.append("connectDevice failed\n");
 			}
 		});
@@ -269,7 +264,7 @@ public class MainActivity extends AppCompatActivity {
 				if (info != null && info.groupOwnerAddress != null) {
 
 					String ip = info.groupOwnerAddress.getHostAddress();
-					mTextInfo.append("getConnectionInfo: groupFormed:" + info.groupFormed + "," + ip + ", isGroupOwner:" + info.isGroupOwner + "\n");
+					mTextInfo.append("getConnectionInfo:\n groupFormed:" + info.groupFormed + "," + ip + " \n isGroupOwner:" + info.isGroupOwner + "\n");
 
 					if (info.groupFormed) {
 						isService = info.isGroupOwner;
