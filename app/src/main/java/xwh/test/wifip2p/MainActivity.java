@@ -159,6 +159,7 @@ public class MainActivity extends AppCompatActivity {
 	protected void onPause() {
 		super.onPause();
 		this.unregisterReceiver(directReceiver);
+		disconnect();
 	}
 
 
@@ -224,7 +225,7 @@ public class MainActivity extends AppCompatActivity {
 	private void connectDevice(WifiP2pDevice device) {
 		WifiP2pConfig config = new WifiP2pConfig();
 		config.deviceAddress = device.deviceAddress;
-
+/*
 		mManager.createGroup(mChannel, new WifiP2pManager.ActionListener() {
 			@Override
 			public void onSuccess() {
@@ -235,7 +236,7 @@ public class MainActivity extends AppCompatActivity {
 			public void onFailure(int reason) {
 				mTextInfo.append("createGroup failed\n");
 			}
-		});
+		});*/
 
 
 		mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
@@ -410,6 +411,14 @@ public class MainActivity extends AppCompatActivity {
 			});
 		}
 
+		if(mServerSocket != null && !mServerSocket.isClosed()) {
+			try {
+				mServerSocket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
 	}
 
 	private void printMessage(final String str) {
@@ -421,10 +430,4 @@ public class MainActivity extends AppCompatActivity {
 		});
 	}
 
-	@Override
-	protected void onDestroy() {
-		super.onDestroy();
-
-		disconnect();
-	}
 }
